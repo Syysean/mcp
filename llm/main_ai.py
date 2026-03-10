@@ -16,6 +16,7 @@ import uvicorn
 import aiohttp
 from typing import Optional
 import carla
+import subprocess
 # 添加src目录到Python路径
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
@@ -95,25 +96,7 @@ class CarlaClient:
     async def spawn_pedestrian(self, pedestrian_type='walker'):
         """生成行人"""
         try:
-            # 查找行人蓝图
-            blueprint_library = self.world.get_blueprint_library()
-            walker_blueprints = blueprint_library.filter('walker.pedestrian.*')
-            if not walker_blueprints:
-                app_logger.error("❌ 未找到行人蓝图")
-                return None
-            
-            blueprint = walker_blueprints[0]  # 使用第一个找到的行人蓝图
-            spawn_point = self.world.get_map().get_spawn_points()[0]
-            # 设置随机位置偏移，避免与车辆重叠
-            spawn_point.location.x += 5.0
-            
-            pedestrian = self.world.spawn_actor(blueprint, spawn_point)
-            self.actors.append(pedestrian)
-            app_logger.info(f"🚶 生成行人: {pedestrian_type}")
-            
-            # 将视角对准生成的行人
-            self.set_spectator_view(pedestrian)
-            return pedestrian
+            subprocess.run(["python ", "tuto_G_pedestrian_navigation.py"], check=True)
         except Exception as e:
             app_logger.error(f"❌ 生成行人失败: {str(e)}")
             return None

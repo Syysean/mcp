@@ -39,10 +39,6 @@ class Config:
     def validate(cls) -> bool:
         """验证配置是否完整"""
         valid = True
-        
-        if not cls.GITHUB_TOKEN:
-            print("警告: GITHUB_TOKEN 未设置，API调用可能受限")
-            valid = False
             
         if not cls.DEEPSEEK_API_KEY:
             print("错误: DEEPSEEK_API_KEY 未设置，AI功能将无法使用")
