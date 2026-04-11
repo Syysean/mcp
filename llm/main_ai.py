@@ -3195,60 +3195,34 @@ assistant = FastMCPGitHubAssistant()
 
 
 def main():
-    """主函数 - 可以选择启动Web界面或MCP服务器"""
+    """主函数 - 支持 Web界面、标准MCP、SSE-MCP 三种启动模式"""
     import sys
+    import socket
 
+    # 1. 提取公共逻辑：无论进入哪个模式，都先进行一次环境校验
+    if not config.validate():
+        print("[ERROR] 配置验证失败，请检查环境变量设置")
+        print("[INFO] 请确保 .env 文件包含以下必要配置：")
+        print("   - GITHUB_TOKEN=your_github_token")
+        print("   - DEEPSEEK_API_KEY=your_deepseek_api_key")
+        return
+    print("[OK] 环境配置验证通过")
+
+    # 2. 根据命令行参数进行路由分发
     if len(sys.argv) > 1 and sys.argv[1] == "mcp":
-        # 启动MCP服务器模式
-        print("[MCP] 启动FastMCP AI助手MCP服务器...")
-
-        # 验证配置
-        if not config.validate():
-            print("[ERROR] 配置验证失败")
-            print("[INFO] 请确保环境变量包含:")
-            print("[INFO] 请确保 .env 文件包含以下必要配置：")
-            print("   - GITHUB_TOKEN=your_github_token")
-            print("   - DEEPSEEK_API_KEY=your_deepseek_api_key")
-            return
-
-        print("[OK] 配置验证通过")
-        print("[TOOLS] 已注册MCP工具:")
-        print("   - search_github_repositories")
-        print("   - get_repository_details")
-        print("   - search_github_users")
-        print("   - get_trending_repositories")
-        print("[READY] 等待AI连接...")
-
-        # 启动FastMCP服务器
+        print("[MCP] 启动 FastMCP AI助手 MCP/stdio 服务器...")
         mcp.run()
+
+    elif len(sys.argv) > 1 and sys.argv[1] == "sse":
+        print("[MCP] 启动 FastMCP AI助手 SSE 服务端 (OpenClaw专用)...")
+        # 监听 0.0.0.0 允许 Docker 跨环境访问，使用 3001 端口与 Web 端物理隔离
+        mcp.run(transport="sse", host="0.0.0.0", port=3001)
+
     else:
-        # 默认启动Web AI对话界面
-        print("[WEB] 启动FastMCP AI助手对话界面...")
-        print("[AI] 集成Deepseek AI + FastMCP工具")
-
-        # 验证配置
-        if not config.validate():
-            print("[ERROR] 配置验证失败，请检查环境变量设置")
-            print("[INFO] 请确保 .env 文件包含以下必要配置：")
-            print("   - GITHUB_TOKEN=your_github_token")
-            print("   - DEEPSEEK_API_KEY=your_deepseek_api_key")
-            return
-
-        print("[OK] 配置验证通过")
-        print("[TOOLS] FastMCP工具已注册:")
-        print("   - @mcp.tool() search_github_repositories")
-        print("   - @mcp.tool() get_repository_details")
-        print("   - @mcp.tool() search_github_users")
-        print("   - @mcp.tool() get_trending_repositories")
-        print("[INFO] 基于FastMCP框架 + Deepseek AI智能对话")
-        print()
-
-        # 指定 0.0.0.0 无效
-        # 获取本地机器的ip地址
+        print("[WEB] 启动 FastMCP AI助手 Web 对话界面...")
         host_ip = socket.gethostbyname(socket.gethostname())
         print(f"[INFO] 访问地址: http://{host_ip}:3000")
         uvicorn.run(app='main_ai:app', host=host_ip, port=3000, reload=True)
-
 
 if __name__ == "__main__":
     main()
