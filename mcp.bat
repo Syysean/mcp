@@ -131,6 +131,7 @@ if errorlevel 1 (
 
 REM 1. First, run main_ai.py
 echo Running main_ai.py...
+start "main_ai_sse" "%PYTHON_EXE%" "%MAIN_AI_PY%" sse
 start "main_ai" "%PYTHON_EXE%" "%MAIN_AI_PY%"
 
 REM Wait for 5 seconds initially to give main_ai.py time to start

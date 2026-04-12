@@ -346,7 +346,17 @@ class CarlaClient:
                 cloudiness=80, precipitation=0, precipitation_deposits=0,
                 wind_intensity=5, sun_azimuth_angle=0, sun_altitude_angle=30,
                 fog_density=90, fog_distance=50, wetness=20
-            )
+            ),
+            'snow': carla.WeatherParameters(
+                cloudiness=80, precipitation=60, precipitation_deposits=80,
+                wind_intensity=20, sun_azimuth_angle=0, sun_altitude_angle=10,
+                fog_density=20, fog_distance=200, wetness=30
+            ),
+            'night': carla.WeatherParameters(
+                cloudiness=20, precipitation=0, precipitation_deposits=0,
+                wind_intensity=5, sun_azimuth_angle=0, sun_altitude_angle=-90,
+                fog_density=0, fog_distance=0, wetness=0
+            ),
         }
         if weather_type in weather_presets:
             self.world.set_weather(weather_presets[weather_type])
@@ -1436,15 +1446,15 @@ async def spawn_vehicle_impl(query: str, count: int = 1, **kwargs) -> str:
     return "❌ 车辆生成失败，请确保CARLA服务器已连接且地图有可用生成点"
 
 
-async def set_weather_impl(owner: str, repo: str) -> str:
+async def set_weather_impl(weather_type: str) -> str:
     """（实际功能：设置天气）"""
     # 检查是否已连接到CARLA服务器
     if carla_client.world is None:
         return "❌ 未连接到CARLA服务器，请先使用'连接CARLA服务器'命令进行连接"
     
-    weather_types = {'clear': '晴天', 'rain': '雨天', 'fog': '雾天'}
-    success = await carla_client.set_weather(repo.lower())
-    return f"✅ 天气已设置为 {weather_types.get(repo.lower(), repo)}" if success else "❌ 不支持的天气类型"
+    weather_presets = {'clear': '晴天', 'rain': '雨天', 'fog': '雾天', 'snow': '雪天', 'night': '夜晚'}
+    success = await carla_client.set_weather(weather_type.lower())
+    return f"✅ 天气已设置为 {weather_presets.get(weather_type.lower(), weather_type)}" if success else "❌ 不支持的天气类型"
 
 
 async def get_traffic_lights_impl(query: str, **kwargs) -> str:
@@ -1560,9 +1570,14 @@ async def spawn_vehicle(query: str, count: int = 1) -> str:
 
 
 @mcp.tool()
-async def set_weather(owner: str, repo: str) -> str:
-    """（实际功能：设置天气）"""
-    return await set_weather_impl(owner, repo)
+async def set_weather(weather_type: str) -> str:
+    """设置仿真天气环境。weather_type 支持:
+        clear(晴天),
+        rain(雨天),
+        fog(雾天),
+        snow(雪天),
+        night(夜晚/弱光)"""
+    return await set_weather_impl(weather_type)
 
 
 @mcp.tool()
@@ -1660,10 +1675,9 @@ class FastMCPGitHubAssistant:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "owner": {"type": "string", "description": "固定值weather"},
-                            "repo": {"type": "string", "enum": ["clear", "rain", "fog"]}
+                            "weather_type": {"type": "string", "enum": ["clear", "rain", "fog", "snow", "night"]}
                         },
-                        "required": ["owner", "repo"]
+                        "required": ["weather_type"]
                     }
                 }
             },
@@ -1858,14 +1872,12 @@ class FastMCPGitHubAssistant:
 
             elif function_name == "set_weather":
                 result = await set_weather_impl(
-                    owner=arguments["owner"],
-                    repo=arguments["repo"]
+                    weather_type=arguments.get("weather_type", "clear")
                 )
                 return {
                     "success": True,
                     "data": result
                 }
-
             elif function_name == "get_traffic_lights":
                 result = await get_traffic_lights_impl(
                     query=arguments["query"],
