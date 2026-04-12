@@ -8,6 +8,9 @@ from loguru import logger
 from src.config import config
 
 def setup_logger():
+    import os
+    os.makedirs("logs", exist_ok=True)
+
     """设置日志配置"""
     # 移除默认的处理器
     logger.remove()
